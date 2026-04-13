@@ -1,7 +1,10 @@
-# llm调用
 import requests
 import urllib3
-from config import API_URL, API_KEY, CHAT_MODEL, SUMMARY_MODEL, TEMPERATURE, SUMMARY_TEMPERATURE, MAX_SUMMARY_TOKENS
+from config import (
+    API_URL, API_KEY, CHAT_MODEL, SUMMARY_MODEL,
+    TEMPERATURE, SUMMARY_TEMPERATURE, MAX_SUMMARY_TOKENS,
+    EMBEDDING_MODEL, EMBEDDING_API_URL
+)
 
 urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 
@@ -20,7 +23,7 @@ def _call_llm(messages, model=CHAT_MODEL, temperature=TEMPERATURE, max_tokens=No
         payload["max_tokens"] = max_tokens
 
     try:
-        response = requests.post(API_URL, headers=headers, json=payload, verify=False, timeout=15)
+        response = requests.post(API_URL, headers=headers, json=payload, verify=False, timeout=30)
         response.raise_for_status()
         return response.json()["choices"][0]["message"]["content"]
     except Exception as e:
@@ -36,3 +39,19 @@ def generate_summary(conversation_text):
         {"role": "user", "content": conversation_text}
     ]
     return _call_llm(messages, model=SUMMARY_MODEL, temperature=SUMMARY_TEMPERATURE, max_tokens=MAX_SUMMARY_TOKENS)
+
+def get_embedding(text):
+    headers = {
+        "Authorization": f"Bearer {API_KEY}",
+        "Content-Type": "application/json"
+    }
+    payload = {
+        "model": EMBEDDING_MODEL,
+        "input": text
+    }
+    try:
+        response = requests.post(EMBEDDING_API_URL, headers=headers, json=payload, verify=False, timeout=15)
+        response.raise_for_status()
+        return response.json()["data"][0]["embedding"]
+    except Exception as e:
+        raise RuntimeError(f"Embedding API 调用失败: {e}") from e
